@@ -822,13 +822,13 @@ def choose_gateway_url(conf, gateways):
 def run_openconnect(conf, do_portal_auth, urls, saml_username, cookies):
 	# type: (Conf, bool, Dict[str, str], str, Dict[str, str]) -> int
 	if do_portal_auth:
-	    url = urls.get('portal')
-	    cookie_type = 'portal:portal-userauthcookie'
-	    cookie = cookies.get('userauthcookie')
+		url = urls.get('portal')
+		cookie_type = 'portal:portal-userauthcookie'
+		cookie = cookies.get('userauthcookie')
 	else:
-	    url = urls.get('gateway')
-	    cookie_type = 'gateway:prelogin-cookie'
-	    cookie = cookies.get('prelogin-cookie')
+		url = urls.get('gateway')
+		cookie_type = 'gateway:prelogin-cookie'
+		cookie = cookies.get('prelogin-cookie')
 	if cookie is None or cookie == 'empty':
 		err('empty "{0}" cookie'.format(cookie_type))
 

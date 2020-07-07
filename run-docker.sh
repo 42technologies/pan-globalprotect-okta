@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 
-conf_username=$(grep "^username" gp-okta.conf | awk -F \= '{print $2}' | tr -d " ")
-conf_password=$(grep "^password" gp-okta.conf | awk -F \= '{print $2}' | tr -d " ")
+DOCKER_IMAGE=${DOCKER_IMAGE:-gp-okta}
+DOCKER_TAG=${DOCKER_TAG:-latest}
+DOCKER_NAME=${DOCKER_NAME:-gp-okta}
+
+CONFIG=${CONFIG:-$1}
+CONFIG=${CONFIG:-gp-okta.conf}
+
+conf_username=$(grep "^username" ${CONFIG} | awk -F \= '{print $2}' | tr -d " ")
+conf_password=$(grep "^password" ${CONFIG} | awk -F \= '{print $2}' | tr -d " ")
 
 ### detect where username is filled in
 if [[ "${conf_username}" ]]; then
@@ -23,7 +30,7 @@ if [[ -z "${conf_password}" && -z "${GP_PASSWORD}" ]]; then
 fi
 
 # If no TOTP secrets are specified, prompt for OTP.
-totp_secrets=$(grep "^totp." gp-okta.conf | awk -F \= '{print $2}' | tr -d " ")
+totp_secrets=$(grep "^totp." ${CONFIG} | awk -F \= '{print $2}' | tr -d " ")
 if [[ -z "${totp_secrets}" ]]; then
     read -p "Enter MFA OTP code: " totp
 fi
@@ -32,7 +39,7 @@ echo
 
 docker run \
     -d \
-    --name=gp-okta \
+    --name=${DOCKER_NAME} \
     --rm \
     --privileged \
     --net=host \
@@ -44,17 +51,17 @@ docker run \
     -e GP_EXECUTE=1 \
     -e GP_OPENCONNECT_CMD=/usr/local/sbin/openconnect \
     -v /etc/resolv.conf:/etc/resolv.conf \
-    -v ${PWD}/gp-okta.conf:/etc/gp-okta.conf \
-    gp-okta \
+    -v $(readlink -f ${CONFIG}):/etc/gp-okta.conf \
+    ${DOCKER_IMAGE}:${DOCKER_TAG} \
     > /dev/null
 
 # Watch output for successful, for a little while at least
-( timeout 30 docker logs -f gp-okta & ) | sed '/ESP tunnel connected/q'
+( timeout 30 docker logs -f ${DOCKER_NAME} & ) | sed '/Connected as/q'
 
 # If container is gone, something went awry
 echo
 echo
-if [ -z "$(docker ps -q -f name=gp-okta)" ]; then
+if [ -z "$(docker ps -q -f name=${DOCKER_NAME})" ]; then
     echo
     echo
     echo "VPN failed to start!"

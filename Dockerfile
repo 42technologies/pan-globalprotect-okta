@@ -3,7 +3,7 @@ FROM python:3.8.3-slim AS builder
 WORKDIR	/
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        curl automake autoconf libtool make \
+        curl automake autoconf libtool make gcc \
         libxml2-dev zlib1g-dev libssl-dev pkg-config
 
 RUN curl -L -o /tmp/openconnect.tar.gz https://gitlab.com/openconnect/openconnect/-/archive/v8.10/openconnect-v8.10.tar.gz
@@ -17,16 +17,19 @@ RUN make install
 
 RUN curl -o /usr/local/sbin/vpnc-script https://gitlab.com/openconnect/vpnc-scripts/-/raw/master/vpnc-script
 RUN	chmod +x /usr/local/sbin/vpnc-script
+RUN pip install vpn-slice
 
 FROM python:3.8.3-slim
 
 RUN pip install pyotp requests lxml
 RUN set -x \
     && apt-get update \
-    && apt-get install -y libxml2 net-tools \
+    && apt-get install -y libxml2 net-tools iproute2 \
     && apt-get clean
+
 COPY --from=builder /usr/local /usr/local
 RUN ldconfig
+RUN pip install vpn-slice
 
 COPY gp-okta.py /usr/local/bin
 
